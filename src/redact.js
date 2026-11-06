@@ -17,6 +17,8 @@ export const SENSITIVE_KEY_PATTERNS = [
   { id: 'national_id', re: /bsn|ssn|passport|paspoort/i }
 ];
 
+const HEADER_VALUE_ALLOWLIST = new Set(['content-type', 'server', 'x-powered-by', 'via', 'x-generator', 'strict-transport-security', 'content-security-policy', 'x-content-type-options', 'x-frame-options', 'referrer-policy', 'permissions-policy', 'cross-origin-opener-policy', 'cross-origin-resource-policy']);
+
 const HEADER_VALUE_DENYLIST = new Set([
   'authorization',
   'proxy-authorization',
@@ -48,7 +50,7 @@ export function redactUrl(rawUrl) {
   }
   if (/^(about|blob|chrome|chrome-extension|javascript):/i.test(rawUrl)) {
     const scheme = rawUrl.split(':')[0].toLowerCase();
-    return { url: rawUrl.startsWith('about:') ? rawUrl : `${scheme}:[REDACTED]`, origin: null, hostname: null, path: null, queryKeys: [], fragment: false, scheme: `${scheme}:` };
+    return { url: rawUrl === 'about:blank' ? rawUrl : `${scheme}:[REDACTED]`, origin: null, hostname: null, path: null, queryKeys: [], fragment: false, scheme: `${scheme}:` };
   }
   let u;
   try {
@@ -59,16 +61,17 @@ export function redactUrl(rawUrl) {
   const queryKeys = [];
   for (const [k] of u.searchParams) {
     if (!queryKeys.some((q) => q.key === k)) {
-      queryKeys.push({ key: k, sensitiveMatches: matchSensitiveKey(k) });
+      queryKeys.push({ key: scrubText(k, 100).text, sensitiveMatches: matchSensitiveKey(k) });
     }
   }
   const fragment = Boolean(u.hash && u.hash.length > 1);
-  const safe = `${u.origin}${u.pathname}${queryKeys.length ? '?[QUERY_REDACTED]' : ''}`;
+  const path = redactPath(u.pathname);
+  const safe = `${u.origin}${path}${queryKeys.length ? '?[QUERY_REDACTED]' : ''}`;
   return {
     url: safe,
     origin: u.origin,
     hostname: u.hostname,
-    path: u.pathname,
+    path,
     scheme: u.protocol,
     queryKeys,
     fragment
@@ -84,17 +87,35 @@ export function redactHeaders(headers = {}) {
   const redactedNames = [];
   for (const [name, value] of Object.entries(headers)) {
     const lower = name.toLowerCase();
-    if (HEADER_VALUE_DENYLIST.has(lower)) {
+    if (lower === 'location') {
+      out[lower] = redactUrl(String(value)).url;
+      if (!/^https?:/i.test(String(value))) {
+        try { out[lower] = redactUrl(new URL(String(value), 'https://redaction.invalid').href).url?.replace('https://redaction.invalid', ''); }
+        catch { out[lower] = '[UNPARSEABLE_URL]'; }
+      }
+      continue;
+    }
+    if (HEADER_VALUE_DENYLIST.has(lower) || !HEADER_VALUE_ALLOWLIST.has(lower)) {
       out[lower] = '[REDACTED]';
       redactedNames.push(lower);
       continue;
     }
-    out[lower] = truncate(String(value), 512);
+    out[lower] = scrubText(String(value).replace(/'nonce-[^']*'/gi, "'nonce-[REDACTED]'"), 512).text;
   }
   return { headers: out, redactedNames };
 }
 
+export function redactPath(path) {
+  return path.split('/').map((part, i, parts) => {
+    if (i > 0 && /^(token|secret|password|session|users?|accounts?|email|reset)$/i.test(parts[i - 1])) return '[PATH_REDACTED]';
+    let decoded;
+    try { decoded = decodeURIComponent(part); } catch { return '[PATH_REDACTED]'; }
+    return scrubText(decoded, 200).text === decoded ? part : '[PATH_REDACTED]';
+  }).join('/');
+}
+
 const SCRUB_RULES = [
+  { id: 'url', re: /https?:\/\/[^\s\"'<>]+/gi, replacement: (url) => redactUrl(url).url },
   // Collapse embedded payloads first. A data URI carries no information a
   // consultant needs, and left in place it swallows the part of the message
   // that does: the reason the browser gave.
