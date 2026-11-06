@@ -197,6 +197,8 @@ export async function captureSession(targetUrl, options = {}) {
     await Promise.race([Promise.allSettled([...pending]), new Promise(resolve => { drainTimer = setTimeout(resolve, Math.max(1, Math.min(responseDrainMs, 5000))); })]);
     clearTimeout(drainTimer);
     frozen = true;
+    await context.close().catch(() => captureError('context shutdown failed'));
+    await browser.close().catch(() => captureError('browser shutdown failed'));
     if (pending.size) captureError('response metadata drain timed out');
     const missingResponses = requests.filter(r => !r.response && !r.failure).map(r => r.id);
     const incompleteReasons = [...captureErrors];

@@ -4,7 +4,7 @@ import { EventEmitter } from 'node:events';
 import { chromium } from 'playwright-core';
 import { captureSession } from '../src/capture/session.js';
 
-async function fakeCapture({ headers, finish = true, emitRequest = true, closeError = false, contextError = false, maxRequests = 5000 }) {
+async function fakeCapture({ headers, finish = true, emitRequest = true, closeError = false, contextError = false, contextCloseError = false, maxRequests = 5000 }) {
   const original = chromium.launch;
   const frame = {};
   const page = Object.assign(new EventEmitter(), {
@@ -18,7 +18,7 @@ async function fakeCapture({ headers, finish = true, emitRequest = true, closeEr
   const response = { request: () => request, allHeaders: headers, headers: () => ({}), status: () => 200, statusText: () => 'OK', fromServiceWorker: () => false, url: request.url };
   page.goto = async () => { if (emitRequest) page.emit('request', request); page.emit('response', response); if (finish) page.emit('requestfinished', request); return response; };
   let closed = false;
-  chromium.launch = async () => ({ newContext: async () => { if (contextError) throw new Error('context failed'); return { route: async () => {}, newPage: async () => page, cookies: async () => [], close: async () => {} }; }, version: () => 'synthetic', close: async () => { closed = true; } });
+  chromium.launch = async () => ({ newContext: async () => { if (contextError) throw new Error('context failed'); return { route: async () => {}, newPage: async () => page, cookies: async () => [], close: async () => { if (contextCloseError) throw new Error('synthetic context shutdown failure'); } }; }, version: () => 'synthetic', close: async () => { closed = true; } });
   try {
     if (contextError) { await assert.rejects(captureSession('http://127.0.0.1/'), /context failed/); assert.equal(closed, true); return; }
     return await captureSession('http://127.0.0.1/', { settleMs: 0, responseDrainMs: 40, maxRequests });
@@ -54,3 +54,9 @@ test('capture limits declare truncation and shutdown failures stay incomplete', 
   assert.ok(raw.session.observation.incompleteReasons.includes('page shutdown failed'));
 });
 test('browser is closed if browser context creation fails', async () => { await fakeCapture({ contextError: true }); });
+
+test('browser-context shutdown failure is reported as incomplete', async () => {
+  const raw = await fakeCapture({ headers: async () => ({}), contextCloseError: true });
+  assert.equal(raw.session.observation.complete, false);
+  assert.ok(raw.session.observation.incompleteReasons.includes('context shutdown failed'));
+});

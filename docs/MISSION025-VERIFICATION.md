@@ -44,7 +44,7 @@ Path, metadata and free-text scrubbing remains pattern-based and incomplete.
 ## Checks
 
 - Baseline `npm test`: 46 tests, 46 passed, zero skips/failures.
-- Expanded `npm test` (localhost-only test preload): 70 tests, 70 passed,
+- Expanded `npm test` (localhost-only test preload): 71 tests, 71 passed,
   zero skips/failures. Includes all original tests.
 - `npm ci --cache <temporary-cache>`: successful clean locked installation,
   3 packages installed, 4 audited, zero reported vulnerabilities.
@@ -86,7 +86,7 @@ not public research evidence.
 
 - `9b273ef`: capture privacy, sandbox enforcement, incomplete observations and response-drain regressions.
 - `ab0a59f`: structural/reference validation, output manifests, historical comparison, CLI integration and controlled design fixtures.
-- CI/documentation commit follows these two implementation commits. Hosted CI links and acceptance progress are recorded on the draft PR and public roadmap after push.
+- `9365248`: Node 24 CI and documentation. A follow-up shutdown regression records browser-context close failures explicitly. Hosted CI links and acceptance progress are recorded on the draft PR and public roadmap after push.
 
 ## Acceptance map
 
