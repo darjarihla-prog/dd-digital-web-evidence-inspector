@@ -79,7 +79,7 @@ A short navigation-timeout regression also constrained browser launch; startup
 now has an independent timeout. The same fixture exposed title/storage waiting
 on an unfinished document: navigation failure now skips unsupported collection
 and records the gap; metadata reads have independent bounds. These failures
-were not promoted as successful checks. Local raw logs are temporary and are
+were not promoted as successful checks. The first hosted run [42153119666](https://github.com/darjarihla-prog/dd-digital-web-evidence-inspector/actions/runs/42153119666) passed secret scanning and dependency installation but failed because the runner lacked pdftotext. CI now explicitly installs poppler-utils; no browser tests were silently skipped as passing. Local raw logs are temporary and are
 not public research evidence.
 
 ## Implementation commits

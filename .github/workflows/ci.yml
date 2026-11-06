@@ -25,6 +25,10 @@ jobs:
           package-manager-cache: false
       - name: Install locked dependencies
         run: npm ci
+      - name: Install PDF text extraction tool
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y poppler-utils
       - name: Verify required browser and PDF text extractor
         run: |
           test -x "$DR_BROWSER_PATH"
