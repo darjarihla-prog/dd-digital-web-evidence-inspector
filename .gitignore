@@ -1,0 +1,12 @@
+# Dependencies and generated inspection output
+node_modules/
+out/
+coverage/
+
+# Local configuration, logs and editor state
+.env
+.env.*
+!.env.example
+*.log
+.cache/
+.DS_Store

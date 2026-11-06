@@ -1,0 +1,20 @@
+{
+  "name": "darja-rihla-web-evidence-inspector",
+  "version": "0.1.0",
+  "description": "Privacy-first browser evidence tool for consultant website reviews",
+  "type": "module",
+  "main": "src/cli.js",
+  "bin": {
+    "dr-inspect": "src/cli.js"
+  },
+  "scripts": {
+    "inspect": "node src/cli.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "license": "Apache-2.0",
+  "private": true,
+  "dependencies": {
+    "playwright-core": "^1.49.0",
+    "tldts": "^6.1.0"
+  }
+}

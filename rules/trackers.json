@@ -1,0 +1,368 @@
+{
+  "ruleSetId": "dr-trackers",
+  "version": "0.1.1",
+  "updated": "2026-09-13",
+  "note": "Hand-maintained list of widely used analytics, advertising and session-recording endpoints. Matching is on registrable domain or exact hostname. The list is deliberately small and conservative: a domain is only listed when its primary purpose is tracking or analytics. Absence from this list is not evidence that no tracking occurs.",
+  "trackers": [
+    {
+      "id": "google-analytics",
+      "name": "Google Analytics",
+      "category": "analytics",
+      "vendor": "Google",
+      "domains": [
+        "google-analytics.com",
+        "analytics.google.com"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "google-tag-manager",
+      "name": "Google Tag Manager",
+      "category": "tag-management",
+      "vendor": "Google",
+      "domains": [
+        "googletagmanager.com"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "google-ads",
+      "name": "Google Ads / DoubleClick",
+      "category": "advertising",
+      "vendor": "Google",
+      "domains": [
+        "doubleclick.net",
+        "googleadservices.com",
+        "googlesyndication.com",
+        "adservice.google.com"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "facebook-pixel",
+      "name": "Meta Pixel",
+      "category": "advertising",
+      "vendor": "Meta",
+      "domains": [
+        "connect.facebook.net",
+        "facebook.com/tr"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "hotjar",
+      "name": "Hotjar",
+      "category": "session-recording",
+      "vendor": "Hotjar",
+      "domains": [
+        "hotjar.com",
+        "hotjar.io"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "microsoft-clarity",
+      "name": "Microsoft Clarity",
+      "category": "session-recording",
+      "vendor": "Microsoft",
+      "domains": [
+        "clarity.ms"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "linkedin-insight",
+      "name": "LinkedIn Insight Tag",
+      "category": "advertising",
+      "vendor": "LinkedIn",
+      "domains": [
+        "snap.licdn.com",
+        "px.ads.linkedin.com"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "tiktok-pixel",
+      "name": "TikTok Pixel",
+      "category": "advertising",
+      "vendor": "TikTok",
+      "domains": [
+        "analytics.tiktok.com"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "matomo-cloud",
+      "name": "Matomo Cloud",
+      "category": "analytics",
+      "vendor": "Matomo",
+      "domains": [
+        "matomo.cloud",
+        "matomo.org"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "plausible",
+      "name": "Plausible Analytics",
+      "category": "analytics",
+      "vendor": "Plausible",
+      "domains": [
+        "plausible.io"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "fathom",
+      "name": "Fathom Analytics",
+      "category": "analytics",
+      "vendor": "Fathom",
+      "domains": [
+        "usefathom.com"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "segment",
+      "name": "Segment",
+      "category": "analytics",
+      "vendor": "Twilio",
+      "domains": [
+        "segment.com",
+        "segment.io"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "mixpanel",
+      "name": "Mixpanel",
+      "category": "analytics",
+      "vendor": "Mixpanel",
+      "domains": [
+        "mixpanel.com"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "amplitude",
+      "name": "Amplitude",
+      "category": "analytics",
+      "vendor": "Amplitude",
+      "domains": [
+        "amplitude.com"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "hubspot",
+      "name": "HubSpot",
+      "category": "marketing-automation",
+      "vendor": "HubSpot",
+      "domains": [
+        "hs-scripts.com",
+        "hubspot.com",
+        "hs-analytics.net",
+        "hsforms.net"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "intercom",
+      "name": "Intercom",
+      "category": "support-widget",
+      "vendor": "Intercom",
+      "domains": [
+        "intercom.io",
+        "intercomcdn.com"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "sentry",
+      "name": "Sentry",
+      "category": "error-monitoring",
+      "vendor": "Sentry",
+      "domains": [
+        "sentry.io",
+        "ingest.sentry.io"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "cloudflare-insights",
+      "name": "Cloudflare Web Analytics",
+      "category": "analytics",
+      "vendor": "Cloudflare",
+      "domains": [
+        "static.cloudflareinsights.com",
+        "cloudflareinsights.com"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "jetpack-stats",
+      "name": "Jetpack Stats",
+      "category": "analytics",
+      "vendor": "Automattic",
+      "domains": [
+        "stats.wp.com",
+        "pixel.wp.com"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "criteo",
+      "name": "Criteo",
+      "category": "advertising",
+      "vendor": "Criteo",
+      "domains": [
+        "criteo.com",
+        "criteo.net"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "taboola",
+      "name": "Taboola",
+      "category": "advertising",
+      "vendor": "Taboola",
+      "domains": [
+        "taboola.com"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "outbrain",
+      "name": "Outbrain",
+      "category": "advertising",
+      "vendor": "Outbrain",
+      "domains": [
+        "outbrain.com"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "pinterest",
+      "name": "Pinterest Tag",
+      "category": "advertising",
+      "vendor": "Pinterest",
+      "domains": [
+        "ct.pinterest.com"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "snapchat",
+      "name": "Snap Pixel",
+      "category": "advertising",
+      "vendor": "Snap",
+      "domains": [
+        "sc-static.net",
+        "tr.snapchat.com"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "yandex-metrica",
+      "name": "Yandex Metrica",
+      "category": "analytics",
+      "vendor": "Yandex",
+      "domains": [
+        "mc.yandex.ru",
+        "yandex.ru/metrika"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "google-ad-traffic-quality",
+      "name": "Google Ad Traffic Quality (SODAR)",
+      "category": "advertising",
+      "vendor": "Google",
+      "domains": [
+        "adtrafficquality.google"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "google-tag-services",
+      "name": "Google Tag Services",
+      "category": "advertising",
+      "vendor": "Google",
+      "domains": [
+        "googletagservices.com"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "doubleclick-2mdn",
+      "name": "DoubleClick ad serving",
+      "category": "advertising",
+      "vendor": "Google",
+      "domains": [
+        "2mdn.net"
+      ],
+      "confidence": "high"
+    }
+  ],
+  "cookieNames": [
+    {
+      "id": "google-analytics",
+      "names": [
+        "_ga",
+        "_gid",
+        "_gat"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "facebook-pixel",
+      "names": [
+        "_fbp",
+        "_fbc"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "hubspot",
+      "names": [
+        "hubspotutk",
+        "__hstc",
+        "__hssc"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "hotjar",
+      "names": [
+        "_hjSessionUser",
+        "_hjSession",
+        "_hjid"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "linkedin-insight",
+      "names": [
+        "li_sugr",
+        "bcookie",
+        "lidc"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "microsoft-clarity",
+      "names": [
+        "_clck",
+        "_clsk"
+      ],
+      "confidence": "high"
+    }
+  ],
+  "changelog": [
+    {
+      "version": "0.1.1",
+      "date": "2026-09-13",
+      "change": "Added adtrafficquality.google, googletagservices.com and 2mdn.net after a real scan of darjarihla.com showed adtrafficquality.google serving ad verification scripts without being labelled."
+    }
+  ]
+}
