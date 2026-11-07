@@ -53,8 +53,15 @@ Missing findings or incomplete checks are inconclusive. A previously adverse
 finding can be resolved only when both scans explicitly declare completeness.
 New findings describe newly observed signals without escalating severity.
 Differences include new, unchanged, changed, resolved and inconclusive buckets,
-with before/after references and scan IDs. Saved-scan comparison verifies available manifests, rejects hash mismatches and refuses output into an original scan directory or over existing artifacts. Missing legacy manifests are explicitly reported as not-provided. Timestamps are excluded from diff
+with before/after references and scan IDs. Saved-scan comparison reads inputs through the strict verifier (`verify.js`): manifests and scan documents are rejected on symlinks, hard links, duplicate keys, unsafe names and malformed structure. Hash mismatches are rejected. Output must not be a symbolic link or sit inside an input scan, and existing artifacts are never overwritten. Missing legacy manifests are explicitly reported as not-provided, with links and devices still refused. Timestamps are excluded from diff
 output so identical inputs produce identical results.
+
+Manifest 1.0.0 entries may carry an optional integer `size`. Manifests written
+from Mission 027B onward include it. Readers that predate it ignore unknown
+fields, and historical manifests without `size` remain valid. Strict verification
+(`verify`, `recovery-verify`) rejects any entry key other than `file`, `sha256`
+and `size`. Entries with unknown keys are therefore a migration concern for
+external writers. Verification semantics are documented in the README.
 
 Manifest 1.0.0 contains sorted file basenames, SHA256 hashes and provenance.
 It covers each output actually written, including PDF when available; it does

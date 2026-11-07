@@ -1,7 +1,8 @@
 /** Deterministic historical comparison. Inputs remain unmodified. */
-import { readFileSync, mkdirSync, writeFileSync, existsSync, realpathSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { validateScan, writeManifest, verifyManifest } from './integrity.js';
+import { lstatSync, mkdirSync, writeFileSync, realpathSync } from 'node:fs';
+import { basename, dirname, join, resolve, sep } from 'node:path';
+import { validateScan, writeManifest } from './integrity.js';
+import { loadVerifiedPackage, loadUnverifiedPackage, manifestPresent, parseStrictJson, PackageIntegrityError } from './verify.js';
 
 const adverse = f => ['REVIEW', 'FAIL'].includes(f.status);
 const complete = e => e.scan.observation?.complete === true && !e.scan.navigationError && !e.evidence.storage.collectionError;
@@ -44,20 +45,104 @@ export function compareScans(before, after) {
 export function renderComparison(diff) {
   return [`# Historical scan comparison`, ``, `${diff.beforeScanId} → ${diff.afterScanId}`, ``, `Complete observations: ${diff.complete}`, ``, ...['new', 'unchanged', 'changed', 'resolved', 'inconclusive'].map(key => `${key}: ${diff[key].length} (${diff[key].map(f => f.findingId).join(', ') || 'none'})`), '', ...diff.limitations].join('\n') + '\n';
 }
-export function compareSavedScans(beforeDir, afterDir, outDir) {
-  const destination = existsSync(outDir) ? realpathSync(outDir) : resolve(outDir);
-  for (const input of [beforeDir, afterDir]) {
-    if (destination === realpathSync(input)) throw new Error('Comparison output must be separate from original scans');
+const OUTPUT_NAMES = ['manifest.json', 'evidence.json', 'findings.json', 'diff.json', 'comparison.md'];
+const SCAN_FILES = ['evidence.json', 'findings.json'];
+// Scan documents are deeper than manifests; the bound still rejects pathological nesting.
+const SCAN_JSON_OPTIONS = { label: 'document', maxDepth: 64, asciiKeys: false };
+
+function lstatOrNull(path) {
+  try {
+    return lstatSync(path);
+  } catch (error) {
+    if (error.code === 'ENOENT' || error.code === 'ENOTDIR') return null;
+    throw error;
   }
-  if (['manifest.json', 'evidence.json', 'findings.json', 'diff.json', 'comparison.md'].some(name => existsSync(join(outDir, name)))) throw new Error('Comparison output already contains artifacts');
-  const integrity = { before: verifyManifest(beforeDir), after: verifyManifest(afterDir) };
-  const read = dir => ({ evidence: JSON.parse(readFileSync(join(dir, 'evidence.json'), 'utf8')), assessment: JSON.parse(readFileSync(join(dir, 'findings.json'), 'utf8')) });
-  const diff = compareScans(read(beforeDir), read(afterDir));
-  diff.integrity = integrity;
-  mkdirSync(outDir, { recursive: true });
-  const files = [join(outDir, 'diff.json'), join(outDir, 'comparison.md')];
-  writeFileSync(files[0], `${JSON.stringify(diff, null, 2)}\n`);
-  writeFileSync(files[1], renderComparison(diff));
-  writeManifest(outDir, files, { beforeScanId: diff.beforeScanId, afterScanId: diff.afterScanId });
+}
+
+/** Real location of an input, or null when it cannot be resolved (the loader reports it). */
+function realOrNull(path) {
+  try {
+    return realpathSync(path);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolves the output directory to a real path before any write.
+ *
+ * The output itself must not be a symbolic link or a non-directory. Symbolic
+ * links in ancestor components are followed, because the user chose that path
+ * and refusing them would break common locations such as macOS /tmp. The
+ * resolved path is what every later check and write uses, so containment is
+ * decided on the real location. A dangling link in the path is refused with a
+ * fixed message, because realpath would otherwise print the path.
+ */
+function resolveOutput(outDir) {
+  const absolute = resolve(outDir);
+  const stat = lstatOrNull(absolute);
+  if (stat?.isSymbolicLink()) throw new Error('Comparison output must not be a symbolic link');
+  if (stat && !stat.isDirectory()) throw new Error('Comparison output is not a directory');
+  const missing = [];
+  let current = absolute;
+  while (!lstatOrNull(current)) {
+    missing.unshift(basename(current));
+    const parent = dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  try {
+    return join(realpathSync(current), ...missing);
+  } catch {
+    throw new Error('Comparison output path could not be resolved');
+  }
+}
+
+/** Parses a scan document from digest-checked or legacy bytes. Errors carry codes only. */
+function parseDocument(bytes) {
+  try {
+    return parseStrictJson(bytes, SCAN_JSON_OPTIONS);
+  } catch (error) {
+    // Same fixed-code error shape as the loaders, so CLI output never carries parser text.
+    throw new PackageIntegrityError([error.code ?? 'DOCUMENT_UNREADABLE']);
+  }
+}
+
+/**
+ * Loads one saved scan. With a manifest present, the strict verifier runs and only
+ * digest-checked bytes are parsed. Without one, the legacy read still happens, but
+ * only through the no-link file checks.
+ */
+function loadScan(dir) {
+  const loaded = manifestPresent(dir)
+    ? { ...loadVerifiedPackage(dir, SCAN_FILES), integrity: 'verified' }
+    : { ...loadUnverifiedPackage(dir, SCAN_FILES), integrity: 'not-provided' };
+  return {
+    integrity: loaded.integrity,
+    evidence: parseDocument(loaded.files['evidence.json']),
+    assessment: parseDocument(loaded.files['findings.json'])
+  };
+}
+
+export function compareSavedScans(beforeDir, afterDir, outDir) {
+  const destination = resolveOutput(outDir);
+  // Containment uses the real input location, so an alias or symlinked parent of an input is caught too.
+  for (const input of [beforeDir, afterDir]) {
+    const real = realOrNull(input);
+    if (real && (destination === real || destination.startsWith(real + sep))) throw new Error('Comparison output must be separate from original scans');
+  }
+  for (const name of OUTPUT_NAMES) {
+    if (lstatOrNull(join(destination, name))) throw new Error('Comparison output already contains artifacts');
+  }
+  const before = loadScan(beforeDir);
+  const after = loadScan(afterDir);
+  const diff = compareScans({ evidence: before.evidence, assessment: before.assessment }, { evidence: after.evidence, assessment: after.assessment });
+  diff.integrity = { before: before.integrity, after: after.integrity };
+  mkdirSync(destination, { recursive: true });
+  const files = [join(destination, 'diff.json'), join(destination, 'comparison.md')];
+  // 'wx' refuses any existing name, including a dangling symlink that would otherwise be followed.
+  writeFileSync(files[0], `${JSON.stringify(diff, null, 2)}\n`, { flag: 'wx' });
+  writeFileSync(files[1], renderComparison(diff), { flag: 'wx' });
+  writeManifest(destination, files, { beforeScanId: diff.beforeScanId, afterScanId: diff.afterScanId }, { exclusive: true });
   return diff;
 }

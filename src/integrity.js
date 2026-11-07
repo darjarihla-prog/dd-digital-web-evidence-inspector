@@ -1,6 +1,6 @@
 /** Structural and reference validation for the supported evidence contracts. */
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
 export function validateScan(evidence, assessment = null) {
@@ -41,24 +41,20 @@ export function validateScan(evidence, assessment = null) {
   return true;
 }
 
-export function writeManifest(directory, files, provenance) {
-  const entries = files.map(file => ({ file: basename(file), sha256: createHash('sha256').update(readFileSync(file)).digest('hex') })).sort((a, b) => a.file.localeCompare(b.file));
+/**
+ * Writes a 1.0.0 manifest. Each file's size is recorded; readers that predate the
+ * field ignore it. `exclusive` refuses to write over any existing name, including a
+ * dangling symlink, so output cannot be redirected through a planted link.
+ *
+ * The former verifyManifest reader was removed. Reading manifests now goes through
+ * verify.js (loadVerifiedPackage / loadUnverifiedPackage) so there is one strict path.
+ */
+export function writeManifest(directory, files, provenance, { exclusive = false } = {}) {
+  const entries = files.map(file => {
+    const data = readFileSync(file);
+    return { file: basename(file), sha256: createHash('sha256').update(data).digest('hex'), size: data.length };
+  }).sort((a, b) => a.file.localeCompare(b.file));
   const path = join(directory, 'manifest.json');
-  writeFileSync(path, `${JSON.stringify({ schema: { name: 'darja-rihla-manifest', version: '1.0.0' }, algorithm: 'SHA256', provenance, files: entries }, null, 2)}\n`);
+  writeFileSync(path, `${JSON.stringify({ schema: { name: 'darja-rihla-manifest', version: '1.0.0' }, algorithm: 'SHA256', provenance, files: entries }, null, 2)}\n`, { flag: exclusive ? 'wx' : 'w' });
   return path;
-}
-
-export function verifyManifest(directory) {
-  const path = join(directory, 'manifest.json');
-  if (!existsSync(path)) return 'not-provided';
-  const manifest = JSON.parse(readFileSync(path, 'utf8'));
-  if (manifest.schema?.name !== 'darja-rihla-manifest' || manifest.schema.version !== '1.0.0' || manifest.algorithm !== 'SHA256' || !Array.isArray(manifest.files)) throw new Error('Unsupported manifest');
-  const names = new Set();
-  for (const entry of manifest.files) {
-    if (typeof entry.file !== 'string' || entry.file !== basename(entry.file) || /[\\/]/.test(entry.file) || entry.file === '..' || names.has(entry.file) || !/^[a-f0-9]{64}$/.test(entry.sha256)) throw new Error('Invalid manifest entry');
-    names.add(entry.file);
-    if (createHash('sha256').update(readFileSync(join(directory, entry.file))).digest('hex') !== entry.sha256) throw new Error('Manifest hash mismatch');
-  }
-  if (!names.has('evidence.json') || !names.has('findings.json')) throw new Error('Manifest must cover evidence and findings for comparison');
-  return 'verified';
 }

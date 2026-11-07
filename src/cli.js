@@ -10,6 +10,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { validateScan, writeManifest } from './integrity.js';
 import { compareSavedScans } from './compare.js';
+import { verifyPackage, verifyRecovery, parseVerificationArgs, usageError, internalRejection } from './verify.js';
 import { redactUrl, scrubText } from './redact.js';
 import { captureSession } from './capture/session.js';
 import { buildEvidence, TOOL_NAME, TOOL_VERSION } from './evidence.js';
@@ -22,6 +23,11 @@ const USAGE = `${TOOL_NAME} v${TOOL_VERSION}
 Usage:
   node src/cli.js <url> [options]
   node src/cli.js compare <before-dir> <after-dir> --out <diff-dir>
+  node src/cli.js verify <dir> [--expected-manifest-sha256 <hex>]
+  node src/cli.js recovery-verify <original-dir> <restored-dir> [--expected-manifest-sha256 <hex>]
+
+Verification commands are offline and read-only, print JSON to stdout and exit
+0 (verified/match), 1 (failed/mismatch), 2 (usage), 4 (rejected package).
 
 Options:
   --out <dir>          output directory (default: ./out)
@@ -139,7 +145,38 @@ function printSummary(evidence, assessment, lang) {
   console.log('');
 }
 
+/** Runs verify or recovery-verify. Always prints one JSON document to stdout and sets the exit code. */
+function runVerificationCommand(command, argv) {
+  let parsed;
+  try {
+    parsed = parseVerificationArgs(command, argv);
+  } catch (error) {
+    // Parse messages are fixed strings that never echo the argument values.
+    return emitVerification(usageError(command, error.message));
+  }
+  let result;
+  try {
+    const { positional, expectedManifestSha256 } = parsed;
+    result = command === 'verify'
+      ? verifyPackage(positional[0], { expectedManifestSha256 })
+      : verifyRecovery(positional[0], positional[1], { expectedManifestSha256 });
+  } catch {
+    // Unexpected failures carry no error text: it could contain local paths.
+    result = internalRejection(command);
+  }
+  return emitVerification(result);
+}
+
+function emitVerification(result) {
+  console.log(JSON.stringify(result, null, 2));
+  process.exitCode = result.exitCode;
+}
+
 async function main() {
+  if (process.argv[2] === 'verify' || process.argv[2] === 'recovery-verify') {
+    runVerificationCommand(process.argv[2], process.argv.slice(3));
+    return;
+  }
   if (process.argv[2] === 'compare') {
     const [before, after, flag, out] = process.argv.slice(3);
     if (!before || !after || flag !== '--out' || !out || process.argv.length !== 7) throw new Error('Usage: compare <before-dir> <after-dir> --out <diff-dir>');

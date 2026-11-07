@@ -142,6 +142,14 @@ three-second bounds. Excess observations are declared incomplete.
 node src/cli.js compare out/earlier out/later --out out/comparison
 ```
 
+Inputs are read with the same strict rules as `verify`: each scan directory
+must be a real directory whose files are regular, not symbolic or hard links,
+and whose manifest, when present, matches every file. Scans without a manifest
+are still compared, marked `not-provided`, and refused if they contain links or
+devices. Output must not be a symbolic link, and must not be or lie inside an
+input scan, checked on real paths so aliases and symlinked parents are caught.
+Existing artifacts, including dangling symlinks, are never overwritten.
+
 Produces diff.json, comparison.md and a manifest, comparing finding IDs and
 referenced metadata with before/after provenance. Only matching supported
 schema versions, redacted final targets and rule sets are accepted. New,
@@ -149,6 +157,52 @@ unchanged, changed, resolved and inconclusive are distinct. Both scans must
 explicitly be complete to prove resolution. Matching redacted URLs do not
 prove identical query values. Legacy 0.1.0 files remain readable but lack an
 explicit completeness guarantee; cross-version comparisons require migration.
+
+## Package verification and recovery
+
+```bash
+node src/cli.js verify out/<scan id>
+node src/cli.js verify out/<scan id> --expected-manifest-sha256 <64 hex>
+node src/cli.js recovery-verify out/<scan id> restored/<scan id> --expected-manifest-sha256 <64 hex>
+```
+
+Both commands work offline, print one JSON document to stdout, write nothing,
+do not follow symbolic links and do not recurse into subdirectories. Recovery
+verifies both packages and then compares them: manifest bytes, profile, file
+set, sizes and SHA256 must be identical.
+
+Checks: every listed file's SHA256 (and size, when the manifest declares one);
+unlisted files and subdirectories (`EXTRA_FILE`); missing listed files; strict
+manifest structure: valid UTF-8 JSON, bounded to 1 MiB, 64 entries and nesting
+of 16 levels; no repeated object key at any depth (compared after escape
+decoding), so the manifest cannot be read differently by two parsers; ASCII
+object keys only; plain ASCII filenames with no traversal, trailing dot,
+Windows device name, duplicate (case-insensitive) or `manifest.json`
+self-listing; supported 1.0.0 schema. Listed files and the manifest must not be
+symbolic links or hard links, and must be regular files (FIFOs, devices and
+sockets are rejected without being opened). The package total is bounded at
+512 MiB, and a file that changes while it is hashed is rejected.
+
+Profiles: `evidence-only` lists evidence.json only. `assessment` lists
+evidence.json, findings.json, report.md and client-summary.html, with
+client-summary.pdf optional because PDF generation can fail. Other packages,
+such as comparison outputs, are rejected rather than guessed at.
+
+Trust: without `--expected-manifest-sha256` the result reports internal
+consistency only. A digest of manifest.json obtained through a channel you
+trust binds the manifest to that reference; a wrong digest fails. Output
+always states `authenticityEstablished: false`. Hashes never prove who
+created a package.
+
+Exit codes: `0` verified or match; `1` integrity failure or recovery
+mismatch; `2` usage error; `4` package rejected. Rejection covers unsafe or
+malformed structure (`MANIFEST_MALFORMED_JSON`, `MANIFEST_AMBIGUOUS`,
+`MANIFEST_TOO_DEEP`, `UNSAFE_FILENAME`, `DUPLICATE_ENTRY`, `SYMLINK_REJECTED`,
+`HARDLINK_REJECTED`, `NOT_REGULAR_FILE`, `PACKAGE_TOO_LARGE`,
+`FILE_CHANGED_DURING_VERIFICATION`), a missing manifest or directory, and
+`INTERNAL_ERROR` or `UNREADABLE_PACKAGE`, whose messages are fixed so that no
+local path reaches the output. Output `status` and `issues[].code` are the
+stable machine-readable fields. Verification never opens a network connection.
 
 ## Tests and contribution
 
