@@ -1,7 +1,7 @@
 # Evidence contracts and migration
 
 The npm package version stays 0.1.0 until a maintainer publishes a release.
-This branch emits evidence and assessment schema version 0.2.0. Existing field
+The `main` branch emits evidence and assessment schema version 0.2.0. Existing field
 names and evidence IDs remain; consumers must accept the new INCONCLUSIVE
 status and additional metadata before upgrading. Saved 0.1.0 files are never
 rewritten automatically.

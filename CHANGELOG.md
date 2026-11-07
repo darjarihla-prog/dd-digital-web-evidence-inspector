@@ -1,5 +1,9 @@
 # Changelog
 
+> Status note (2026-11-07): Mission 025 (PR #12, squash `74e67ba`) and Mission 027
+> (PR #13, squash `54cb531`) are merged to `main`. No release or npm package has been
+> published. Entries below are kept as written. See `docs/roadmap/` for project status.
+
 ## Unreleased — Mission 025
 
 - Redact original input URLs before capture returns and before evidence building;

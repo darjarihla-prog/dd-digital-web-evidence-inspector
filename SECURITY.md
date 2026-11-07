@@ -4,7 +4,7 @@ This tool is an observer, not a vulnerability scanner or legal compliance
 verifier. Inspect only targets you are authorized to visit. Use synthetic
 localhost fixtures for reports and regressions.
 
-As verified on 2026-11-06, GitHub private vulnerability reporting is disabled
+As verified on 2026-11-07, GitHub private vulnerability reporting is disabled
 for this repository. There is no verified private reporting channel or
 maintainer email published here. For a sensitive report, do not post exploit
 details, private captures or secrets in a public issue. Ask the maintainer in
@@ -63,6 +63,7 @@ channel you trust (`--expected-manifest-sha256`) detects that. Results never
 claim provenance or authenticity. Verification does not sign, encrypt or
 authenticate artifacts.
 
-Package 0.1.0 is the published baseline. Branch changes are unreleased until
-reviewed and published by a maintainer. No separate supported-version promise
+Package 0.1.0 is the baseline version in `package.json`. It is marked private and
+is not published to npm. Changes merged to `main` are unreleased until a maintainer
+decides to publish a release. No separate supported-version promise
 or response-time SLA is established by this document.

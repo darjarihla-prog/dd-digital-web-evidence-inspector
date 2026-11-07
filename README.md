@@ -6,9 +6,12 @@ observed evidence separate from deterministic findings and recommendations.
 It does not attack, fuzz, authenticate or issue legal compliance verdicts.
 Inspect only authorized targets. There is no telemetry or capture upload.
 
-The published baseline is package 0.1.0, commit `9c9c67a`. Mission 025 changes
-on a feature branch are unreleased. The evidence and assessment contracts on
-this branch are version 0.2.0; see [migration notes](docs/SCHEMA-MIGRATION.md).
+The baseline commit is `9c9c67a`, whose package version is 0.1.0. That package is
+marked `private` and is not published to npm; there is no GitHub release or tag.
+Missions 025 and 027 are merged to `main` and remain unreleased. The evidence and
+assessment contracts on `main` are version 0.2.0; see
+[migration notes](docs/SCHEMA-MIGRATION.md). Project status and roadmap:
+[docs/roadmap](docs/roadmap/README.md).
 
 ## Install and reproduce
 
