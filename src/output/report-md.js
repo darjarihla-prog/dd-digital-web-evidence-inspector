@@ -217,6 +217,7 @@ export function renderConsultantReport(evidence, assessment, options = {}) {
   out.push(dashboard(evidence, assessment, t));
   out.push('');
   out.push(t.counts(assessment.counts.fail, assessment.counts.review, assessment.counts.pass, assessment.counts.total));
+  if (assessment.counts.inconclusive) out.push(`${assessment.counts.inconclusive} INCONCLUSIVE`);
   out.push('');
   out.push(`> ${PASS_MEANING[lang] || PASS_MEANING.en}`);
   out.push('');

@@ -8,6 +8,9 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { validateScan, writeManifest } from './integrity.js';
+import { compareSavedScans } from './compare.js';
+import { redactUrl, scrubText } from './redact.js';
 import { captureSession } from './capture/session.js';
 import { buildEvidence, TOOL_NAME, TOOL_VERSION } from './evidence.js';
 import { assess } from './assess.js';
@@ -18,6 +21,7 @@ const USAGE = `${TOOL_NAME} v${TOOL_VERSION}
 
 Usage:
   node src/cli.js <url> [options]
+  node src/cli.js compare <before-dir> <after-dir> --out <diff-dir>
 
 Options:
   --out <dir>          output directory (default: ./out)
@@ -64,6 +68,7 @@ function parseArgs(argv) {
 function normaliseUrl(input) {
   const candidate = /^https?:\/\//i.test(input) ? input : `https://${input}`;
   const url = new URL(candidate);
+  if (!['http:', 'https:'].includes(url.protocol)) throw new Error('HTTP(S) required');
   return url.toString();
 }
 
@@ -123,7 +128,7 @@ function printSummary(evidence, assessment, lang) {
   for (const [label, value] of rows) console.log(`  ${label.padEnd(width)}  ${value}`);
   if (assessment) {
     console.log(
-      `  ${t.overall.padEnd(width)}  ${assessment.overall}  (${assessment.counts.fail} FAIL, ${assessment.counts.review} REVIEW, ${assessment.counts.pass} PASS)`
+      `  ${t.overall.padEnd(width)}  ${assessment.overall}  (${assessment.counts.fail} FAIL, ${assessment.counts.review} REVIEW, ${assessment.counts.pass} PASS, ${assessment.counts.inconclusive || 0} INCONCLUSIVE)`
     );
     console.log('');
     for (const line of t.passNote) console.log(`  ${line}`);
@@ -135,11 +140,18 @@ function printSummary(evidence, assessment, lang) {
 }
 
 async function main() {
+  if (process.argv[2] === 'compare') {
+    const [before, after, flag, out] = process.argv.slice(3);
+    if (!before || !after || flag !== '--out' || !out || process.argv.length !== 7) throw new Error('Usage: compare <before-dir> <after-dir> --out <diff-dir>');
+    const diff = compareSavedScans(before, after, out);
+    console.log(`Comparison written: ${diff.new.length} new, ${diff.resolved.length} resolved, ${diff.inconclusive.length} inconclusive`);
+    return;
+  }
   let args;
   try {
     args = parseArgs(process.argv.slice(2));
   } catch (error) {
-    console.error(error.message);
+    console.error(scrubText(error.message).text);
     console.error(USAGE);
     process.exit(2);
   }
@@ -148,17 +160,18 @@ async function main() {
     process.exit(args.url ? 0 : 1);
   }
 
+  if (!Number.isFinite(args.timeout) || args.timeout < 1 || args.timeout > 120000 || !Number.isFinite(args.settle) || args.settle < 0 || args.settle > 30000 || !['load', 'domcontentloaded', 'networkidle'].includes(args.wait) || !['en', 'nl'].includes(args.lang)) throw new Error('Invalid timeout, settle, wait or language option');
   let targetUrl;
   try {
     targetUrl = normaliseUrl(args.url);
   } catch {
-    console.error(`Not a usable URL: ${args.url}`);
+    console.error('Not a usable HTTP(S) URL');
     process.exit(2);
   }
 
   const startedAt = new Date();
   const scanId = `${startedAt.toISOString().replace(/[:.]/g, '-')}_${slug(new URL(targetUrl).hostname)}`;
-  if (!args.quiet) console.error(strings(args.lang).observing(targetUrl));
+  if (!args.quiet) console.error(strings(args.lang).observing(redactUrl(targetUrl).url));
 
   let raw;
   try {
@@ -171,11 +184,12 @@ async function main() {
       waitUntil: args.wait
     });
   } catch (error) {
-    console.error(`Capture failed: ${error.message}`);
+    console.error(`Capture failed: ${scrubText(error.message).text}`);
     process.exit(3);
   }
 
   const evidence = buildEvidence(raw, { rulesPath: args.rules, scanId });
+  validateScan(evidence);
   const outDir = resolve(args.out, scanId);
   mkdirSync(outDir, { recursive: true });
   const evidencePath = join(outDir, 'evidence.json');
@@ -186,6 +200,7 @@ async function main() {
   let assessment = null;
   if (!args.evidenceOnly) {
     assessment = assess(evidence, { lang: args.lang });
+    validateScan(evidence, assessment);
     const findingsPath = join(outDir, 'findings.json');
     writeFileSync(findingsPath, `${JSON.stringify(assessment, null, 2)}\n`, 'utf8');
     written.push(findingsPath);
@@ -211,6 +226,8 @@ async function main() {
     }
   }
 
+  written.push(writeManifest(outDir, written, { scanId, evidenceSchema: evidence.schema, tool: evidence.scan.tool }));
+
   if (args.quiet) {
     console.log(written.join('\n'));
   } else {
@@ -221,6 +238,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error);
+  console.error(scrubText(error.message).text);
   process.exit(1);
 });

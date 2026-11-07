@@ -8,6 +8,7 @@
  */
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { scrubText } from '../redact.js';
 import { chromium } from 'playwright-core';
 
 const CHANNEL_CANDIDATES = ['chrome', 'chromium', 'msedge'];
@@ -58,12 +59,12 @@ export async function launchBrowser({ browserPath, headless = true, timeout = 30
   const errors = [];
   for (const attempt of attempts) {
     try {
-      const launchOptions = { ...attempt.options, timeout, args: ['--no-sandbox', '--disable-dev-shm-usage'] };
+      const launchOptions = { ...attempt.options, timeout, chromiumSandbox: true, args: ['--disable-dev-shm-usage', '--disable-background-networking', '--disable-component-update'] };
       if (proxy) launchOptions.proxy = { server: proxy };
       const browser = await chromium.launch(launchOptions);
       return { browser, launchedVia: attempt.how };
     } catch (error) {
-      errors.push(`${attempt.how}: ${error.message.split('\n')[0]}`);
+      errors.push(`${attempt.how}: ${scrubText(error.message.split('\n')[0]).text}`);
     }
   }
   const detail = errors.map((e) => `  - ${e}`).join('\n');

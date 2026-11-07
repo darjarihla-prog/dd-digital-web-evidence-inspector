@@ -12,7 +12,7 @@
  *   FAIL   something was observed that is wrong in almost any context.
  */
 
-export const STATUS = { PASS: 'PASS', REVIEW: 'REVIEW', FAIL: 'FAIL' };
+export const STATUS = { INCONCLUSIVE: 'INCONCLUSIVE', PASS: 'PASS', REVIEW: 'REVIEW', FAIL: 'FAIL' };
 export const SEVERITY = { INFO: 'info', LOW: 'low', MEDIUM: 'medium', HIGH: 'high' };
 export const CONFIDENCE = { LOW: 'low', MEDIUM: 'medium', HIGH: 'high' };
 
@@ -323,5 +323,6 @@ export const RULES = [
 export function worstStatus(statuses) {
   if (statuses.includes(STATUS.FAIL)) return STATUS.FAIL;
   if (statuses.includes(STATUS.REVIEW)) return STATUS.REVIEW;
+  if (statuses.includes(STATUS.INCONCLUSIVE)) return STATUS.INCONCLUSIVE;
   return STATUS.PASS;
 }

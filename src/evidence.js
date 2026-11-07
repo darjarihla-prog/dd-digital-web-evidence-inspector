@@ -5,12 +5,13 @@
  * It classifies (first/third party, tracker match, header presence) but does
  * not grade. PASS / REVIEW / FAIL is the responsibility of the rules layer.
  */
+import { redactUrl } from './redact.js';
 import { createPartyClassifier } from './classify/domains.js';
 import { createTrackerMatcher, loadTrackerRules } from './classify/trackers.js';
 import { observeSecurityHeaders } from './classify/headers.js';
 import { classifyOrigin, ORIGIN } from './classify/console-origin.js';
 
-export const EVIDENCE_SCHEMA_VERSION = '0.1.0';
+export const EVIDENCE_SCHEMA_VERSION = '0.2.0';
 export const TOOL_NAME = 'Darja Rihla Web Evidence Inspector';
 export const TOOL_VERSION = '0.1.0';
 
@@ -34,6 +35,8 @@ export const PRIVACY_POLICY = {
 };
 
 export function buildEvidence(raw, { rulesPath, scanId } = {}) {
+  // Defensive boundary for callers supplying baseline raw capture documents.
+  raw = { ...raw, target: { ...raw.target, inputUrl: redactUrl(raw.target.inputUrl).url, finalUrl: redactUrl(raw.target.finalUrl).url } };
   const rules = loadTrackerRules(rulesPath || undefined);
   const trackerMatcher = createTrackerMatcher(rules);
   const party = createPartyClassifier(raw.target.finalUrl || raw.target.inputUrl);
@@ -76,7 +79,9 @@ export function buildEvidence(raw, { rulesPath, scanId } = {}) {
       hostnames: [...entry.hostnames],
       resourceTypes: [...entry.resourceTypes],
       tracker: entry.tracker,
-      evidenceRefs: entry.evidenceRefs
+      evidenceRefs: entry.evidenceRefs,
+      evidenceRefsTotal: entry.requestCount,
+      evidenceRefsTruncated: entry.requestCount > entry.evidenceRefs.length
     }))
     .sort((a, b) => b.requestCount - a.requestCount);
 
@@ -122,6 +127,11 @@ export function buildEvidence(raw, { rulesPath, scanId } = {}) {
     return { ...cookie, party: party.classify(cookie.domain.replace(/^\./, '')), tracker: tracker || null };
   });
 
+  for (const tracker of trackersDetected) {
+    tracker.evidenceRefsTotal = tracker.requestCount + cookies.filter(cookie => cookie.tracker?.trackerId === tracker.trackerId).length;
+    tracker.evidenceRefsTruncated = tracker.evidenceRefsTotal > tracker.evidenceRefs.length;
+  }
+
   const mainNavigation = raw.navigationChain;
   const finalHost = raw.target.finalHostname;
   const redirects = {
@@ -137,7 +147,7 @@ export function buildEvidence(raw, { rulesPath, scanId } = {}) {
       Boolean(raw.target.finalUrl && raw.target.finalUrl.startsWith('https://'))
   };
 
-  const documentResponse = requests.find(
+  const documentResponse = [...requests].reverse().find(
     (r) => r.frame === 'main' && r.isNavigation && r.response && r.response.status < 300
   ) || requests.find((r) => r.frame === 'main' && r.isNavigation && r.response);
   const isHttps = Boolean(raw.target.finalUrl && raw.target.finalUrl.startsWith('https://'));

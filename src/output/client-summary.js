@@ -16,6 +16,7 @@ const STRINGS = {
     date: 'Datum van waarneming',
     verdict: 'Totaalbeeld',
     verdictLead: {
+      INCONCLUSIVE: 'De waarnemingen zijn onvolledig; herhaal de controle.',
       PASS: 'Binnen de uitgevoerde controles is geen relevante bevinding waargenomen.',
       REVIEW: 'Er zijn punten waargenomen die beoordeling vragen.',
       FAIL: 'Er zijn punten waargenomen die in vrijwel elke situatie onjuist zijn.'
@@ -46,6 +47,7 @@ const STRINGS = {
     date: 'Observed on',
     verdict: 'Overall picture',
     verdictLead: {
+      INCONCLUSIVE: 'Observations are incomplete; repeat the inspection.',
       PASS: 'No relevant finding was observed within the checks performed.',
       REVIEW: 'Points were observed that need a judgement.',
       FAIL: 'Points were observed that are wrong in almost any situation.'
@@ -71,7 +73,7 @@ const STRINGS = {
   }
 };
 
-const STATUS_COLOR = { PASS: '#1f7a4d', REVIEW: '#9a6700', FAIL: '#a3262c' };
+const STATUS_COLOR = { INCONCLUSIVE: '#666666', PASS: '#1f7a4d', REVIEW: '#9a6700', FAIL: '#a3262c' };
 
 function escapeHtml(value) {
   return String(value == null ? '' : value)
